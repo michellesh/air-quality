@@ -1,55 +1,69 @@
-// code source for reading pm2.5 sensor:
-// https://how2electronics.com/iot-air-pollution-monitoring-esp8266/
+#include "config.h"
+#include "Adafruit_PM25AQI.h"
+#include <SoftwareSerial.h>
 
-#include <ESP8266WiFi.h>
-#include <Wire.h>
-#include <Arduino.h>
+SoftwareSerial pmSerial(2, 3);
 
-#define LENG 31  // 0x42 + 31 bytes equal to 32 bytes
+Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
 
-unsigned char buf[LENG];
-int pm25Value = 0; // define PM2.5 value of the air detector module
+AdafruitIO_Feed *aqiFeed = io.feed("Base Camp AQI");
 
 void setup() {
-  Serial.begin(9600);
-  delay(10);
+  // Wait for serial monitor to open
+  Serial.begin(115200);
+  while (!Serial) delay(10);
+
+  pmSerial.begin(9600);
+
+  connectSensor();
+  connectAdafruitIO();
 }
 
 void loop() {
-  if (Serial.find(0x42)) {    // start to read when detect 0x42
-    Serial.readBytes(buf, LENG);
+  io.run();
 
-    if (buf[0] == 0x4d) {
-      if (checkValue(buf, LENG)) {
-        pm25Value = transmitPM25(buf);// count PM2.5 value of the air detector module
+  PM25_AQI_Data data;
 
-        Serial.print("PM2.5: ");
-        Serial.print(pm25Value);
-        Serial.println("  ug/m3");
-      }
-    }
+  if (! aqi.read(&data)) {
+    Serial.println("Could not read from AQI");
+    delay(50);  // try again in a bit!
+    return;
   }
-  delay(100);
+
+  Serial.print("PM 2.5: ");
+  Serial.println(data.pm25_standard);
+
+  aqiFeed->save(data.pm25_standard);
+
+  delay(5000);
 }
 
-char checkValue(unsigned char *thebuf, char leng) {
-  char receiveflag = 0;
-  int receiveSum = 0;
+void connectSensor() {
+  // Wait one second for sensor to boot up!
+  delay(1000);
 
-  for (int i = 0; i < (leng - 2); i++) {
-    receiveSum = receiveSum + thebuf[i];
+  // connect to the sensor over software serial
+  if (! aqi.begin_UART(&pmSerial)) {
+    Serial.println("Could not find PM 2.5 sensor!");
+    while (1) delay(10);
   }
-  receiveSum = receiveSum + 0x42;
 
-  if (receiveSum == ((thebuf[leng - 2] << 8) + thebuf[leng - 1])) {
-    receiveSum = 0;
-    receiveflag = 1;
-  }
-  return receiveflag;
+  Serial.println("PM25 found!");
 }
 
-int transmitPM25(unsigned char *thebuf) {
-  int pm25Val;
-  pm25Val = ((thebuf[5] << 8) + thebuf[6]); // count PM2.5 value of the air detector module
-  return pm25Val;
+void connectAdafruitIO() {
+  Serial.print("Connecting to Adafruit IO");
+
+  // connect to io.adafruit.com
+  io.connect();
+
+  // wait for a connection
+  while(io.status() < AIO_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+
+  // we are connected
+  Serial.println();
+  Serial.println(io.statusText());
 }
