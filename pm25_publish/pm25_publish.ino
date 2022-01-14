@@ -24,6 +24,8 @@
 #define OLED_RESET      -1    // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS  0x3C  ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
+#define UPDATE_INTERVAL_SECONDS  5  // Every X seconds, read sensor and update screen
+
 SoftwareSerial pmSerial(2, 3);
 
 Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
@@ -35,6 +37,21 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 const long utcOffsetInSeconds = 6 * 3600; // Your time zone
 WiFiUDP ntpUDP; // Define NTP Client to get time
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
+
+uint16_t last10min[120];  // 10 minutes * (60 / UPDATE_INTERVAL_SECONDS)
+
+struct Timer {
+  unsigned long totalCycleTime;
+  unsigned long lastCycleTime;
+  void reset() {
+    lastCycleTime = millis();
+  };
+  bool complete() {
+    return (millis() - lastCycleTime) > totalCycleTime;
+  };
+};
+
+Timer timer = {1000 * UPDATE_INTERVAL_SECONDS, 0};
 
 void setup() {
   Serial.begin(115200);
@@ -49,12 +66,19 @@ void setup() {
 
 void loop() {
   io.run();
-  display.clearDisplay();
   timeClient.update();
 
+  if (timer.complete()) {
+    displayAQI();
+    timer.reset();
+  }
+}
+
+void displayAQI() {
+  display.clearDisplay();
   PM25_AQI_Data data;
 
-  if (! aqi.read(&data)) {
+  if (!aqi.read(&data)) {
     Serial.println("Could not read from AQI");
     delay(50);  // try again in a bit!
     return;
@@ -71,7 +95,6 @@ void loop() {
   displayTime(display);
 
   display.display();
-  delay(2000);
 }
 
 void displayRect(Adafruit_SSD1306 &d, uint16_t aqi) {
