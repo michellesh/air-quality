@@ -66,6 +66,7 @@ void loop() {
   aqiFeed->save(data.pm25_standard);
 
   displayRect(display, data.pm25_standard);
+  displayNowText(display);
   displayNowAQI(display, data.pm25_standard);
   displayTime(display);
 
@@ -89,6 +90,12 @@ void displayTime(Adafruit_SSD1306 &d) {
   d.setTextSize(1);
   d.setCursor(7, 50);
   d.println(buffer);
+}
+
+void displayNowText(Adafruit_SSD1306 &d) {
+  d.setTextSize(1);
+  d.setCursor(25, 5);
+  d.println("Now");
 }
 
 void displayNowAQI(Adafruit_SSD1306 &d, uint16_t aqi) {
