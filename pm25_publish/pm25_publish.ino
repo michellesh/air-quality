@@ -35,7 +35,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 const long utcOffsetInSeconds = 6 * 3600; // Your time zone
 WiFiUDP ntpUDP; // Define NTP Client to get time
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
-char buffer[30];
 
 void setup() {
   Serial.begin(115200);
@@ -67,7 +66,7 @@ void loop() {
   aqiFeed->save(data.pm25_standard);
 
   displayRect(display, data.pm25_standard);
-  displayAQI(display, data.pm25_standard);
+  displayNowAQI(display, data.pm25_standard);
   displayTime(display);
 
   display.display();
@@ -75,26 +74,35 @@ void loop() {
 }
 
 void displayRect(Adafruit_SSD1306 &d, uint16_t aqi) {
-  display.drawRect(0, 15, 21, 32, SSD1306_WHITE);
+  display.drawRect(0, 15, 62, 32, SSD1306_WHITE);
 }
 
 void displayTime(Adafruit_SSD1306 &d) {
   int hours = timeClient.getHours();
   int minutes = timeClient.getMinutes();
   int seconds = timeClient.getSeconds();
+  char buffer[30];
   sprintf(buffer, "%d:%02d:%02d", hours, minutes, seconds);
   Serial.print("Last Updated: ");
   Serial.println(buffer);
 
   d.setTextSize(1);
-  d.setCursor(0, 50);
+  d.setCursor(7, 50);
   d.println(buffer);
 }
 
-void displayAQI(Adafruit_SSD1306 &d, uint16_t aqi) {
-  char buffer[16];
+void displayNowAQI(Adafruit_SSD1306 &d, uint16_t aqi) {
   d.setTextSize(3);
-  d.setCursor(3, 20);
+  if (aqi < 10) {
+    d.setCursor(25, 20);
+  } else if (aqi < 100) {
+    d.setCursor(15, 20);
+  } else if (aqi < 1000) {
+    d.setCursor(5, 20);
+  } else {
+    aqi = 999;
+  }
+  char buffer[16];
   sprintf(buffer, "%d", aqi);
   d.println(buffer);
 }
