@@ -4,11 +4,12 @@ void initDisplay() {
     Serial.println(F("SSD1306 allocation failed"));
     for(;;); // Don't proceed, loop forever
   }
+  display.clearDisplay();
 
   // Show initial display buffer contents on the screen --
   // the library initializes this with an Adafruit splash screen.
   display.setTextColor(SSD1306_WHITE);
-  display.display();
+  //display.display();
   delay(2000);
 }
 
@@ -27,18 +28,49 @@ void initSensor() {
   Serial.println("PM25 found!");
 }
 
-void connectWiFi() {
+bool connectWiFi() {
   WiFi.begin(SECRET_SSID, SECRET_PASS);
+
   Serial.print("Connecting to ");
   Serial.println(SECRET_SSID);
-  while (WiFi.status() != WL_CONNECTED) {
+
+  display.setCursor(10, 10);
+  display.println("Connecting to ");
+  display.println(SECRET_SSID);
+  display.display();
+
+  int cursorX = 20;
+  display.setCursor(cursorX, 30);
+
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 10) {
     delay(500);
     Serial.print(".");
+    display.print(".");
+    display.display();
+
+    cursorX += 5;
+    display.setCursor(cursorX, 30);
+
+    attempts++;
   }
-  Serial.println("");
-  Serial.println("WiFi connected!");
-  Serial.println(WiFi.localIP());
-  Serial.println();
+
+  display.setCursor(10, 50);
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("WiFi connected!");
+    Serial.println(WiFi.localIP());
+    display.println("Connected!");
+    display.display();
+    delay(1000);
+    return true;
+  }
+
+  Serial.println("Failed to connect to WiFi");
+  display.println("Failed to connect.");
+  display.display();
+  delay(1000);
+  return false;
 }
 
 void connectAdafruitIO() {
@@ -48,9 +80,11 @@ void connectAdafruitIO() {
   io.connect();
 
   // wait for a connection
-  while(io.status() < AIO_CONNECTED) {
+  int attempts = 0;
+  while (io.status() < AIO_CONNECTED && attempts < 10) {
     Serial.print(".");
     delay(500);
+    attempts++;
   }
 
   // we are connected

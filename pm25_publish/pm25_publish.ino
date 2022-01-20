@@ -53,20 +53,26 @@ struct Timer {
 
 Timer timer = {1000 * UPDATE_INTERVAL_SECONDS, 0};
 
+bool wifiConnected = false;
+
 void setup() {
   Serial.begin(115200);
   pmSerial.begin(9600);
 
   initDisplay();
   initSensor();
-  connectWiFi();
-  connectAdafruitIO();
-  timeClient.begin();
+  wifiConnected = connectWiFi();
+  if (wifiConnected) {
+    connectAdafruitIO();
+    timeClient.begin();
+  }
 }
 
 void loop() {
-  io.run();
-  timeClient.update();
+  if (wifiConnected) {
+    io.run();
+    timeClient.update();
+  }
 
   if (timer.complete()) {
     displayAQI();
