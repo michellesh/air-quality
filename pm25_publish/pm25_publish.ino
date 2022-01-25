@@ -53,6 +53,12 @@ struct Timer {
 
 Timer timer = {1000 * UPDATE_INTERVAL_SECONDS, 0};
 
+#include "Screen.h"
+uint8_t DEFAULT_TEXT_SIZE = 1;
+int16_t DEFAULT_X = 0;
+int16_t DEFAULT_Y = 0;
+Screen screen = {DEFAULT_TEXT_SIZE, DEFAULT_X, DEFAULT_Y};
+
 bool wifiConnected = false;
 
 void setup() {
@@ -61,7 +67,7 @@ void setup() {
 
   initDisplay();
   initSensor();
-  wifiConnected = connectWiFi();
+  connectWiFi();
   if (wifiConnected) {
     connectAdafruitIO();
     timeClient.begin();
