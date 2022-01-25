@@ -31,46 +31,56 @@ void initSensor() {
 bool connectWiFi() {
   WiFi.begin(SECRET_SSID, SECRET_PASS);
 
-  Serial.print("Connecting to ");
-  Serial.println(SECRET_SSID);
+  display.setCursor(5, 10);
+  displayAndPrintln("Connecting to ");
+  display.setCursor(5, 20);
+  displayAndPrintln(SECRET_SSID);
 
-  display.setCursor(10, 10);
-  display.println("Connecting to ");
-  display.println(SECRET_SSID);
-  display.display();
-
-  int cursorX = 20;
+  int cursorX = 5;
   display.setCursor(cursorX, 30);
 
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 10) {
     delay(500);
-    Serial.print(".");
-    display.print(".");
-    display.display();
+    displayAndPrint(".");
 
     cursorX += 5;
+    if (cursorX >= SCREEN_WIDTH) {
+      cursorX = 5;
+      display.clearDisplay();
+      display.setCursor(5, 10);
+      displayAndPrintln("Connecting to ");
+      display.setCursor(5, 20);
+      displayAndPrintln(SECRET_SSID);
+    }
     display.setCursor(cursorX, 30);
 
     attempts++;
   }
 
-  display.setCursor(10, 50);
+  bool connected = WiFi.status() == WL_CONNECTED;
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("WiFi connected!");
-    Serial.println(WiFi.localIP());
-    display.println("Connected!");
-    display.display();
-    delay(1000);
-    return true;
+  display.setCursor(5, 35);
+  if (connected) {
+    displayAndPrintln("Connected! :)");
+  } else {
+    displayAndPrintln("Failed to connect :(");
   }
 
-  Serial.println("Failed to connect to WiFi");
-  display.println("Failed to connect.");
+  delay(3000);
+  return connected;
+}
+
+void displayAndPrintln(char* s) {
+  Serial.println(s);
+  display.println(s);
   display.display();
-  delay(1000);
-  return false;
+}
+
+void displayAndPrint(char* s) {
+  Serial.print(s);
+  display.print(s);
+  display.display();
 }
 
 void connectAdafruitIO() {
