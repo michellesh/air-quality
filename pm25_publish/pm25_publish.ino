@@ -41,6 +41,7 @@ struct Timer {
 };
 
 bool wifiConnected = false;
+bool adafruitConnected = false;
 Timer timer = {1000 * UPDATE_INTERVAL_SECONDS, 0};
 
 #include "Screen.h"
@@ -60,11 +61,12 @@ void setup() {
 }
 
 void loop() {
-  if (wifiConnected) {
+  if (adafruitConnected) {
     io.run();
+  }
+  if (wifiConnected) {
     timeClient.update();
   }
-
   if (timer.complete()) {
     displayAQI();
     timer.reset();
@@ -72,8 +74,9 @@ void loop() {
 }
 
 void displayAQI() {
-  screen.clear();
   uint16_t pm25 = getPM25();
-  aqiFeed->save(pm25);
   updateAQI(pm25);
+  if (adafruitConnected) {
+    aqiFeed->save(pm25);
+  }
 }

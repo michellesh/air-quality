@@ -28,19 +28,19 @@ void initSensor() {
   Serial.println("PM25 found!");
 }
 
-void displayConnectingTo() {
+void displayConnectingTo(char* name) {
   screen = screen.x(5).y(5)
                  .textSize(1)
                  .println("Connecting to ")
                  .incY()
-                 .println(SECRET_SSID)
+                 .println(name)
                  .incY();
 }
 
 bool connectWiFi() {
   WiFi.begin(SECRET_SSID, SECRET_PASS);
 
-  displayConnectingTo();
+  displayConnectingTo(SECRET_SSID);
 
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 10) {
@@ -48,38 +48,42 @@ bool connectWiFi() {
     screen = screen.print(".").incX();
     if (screen.getX() >= SCREEN_WIDTH) {
       screen = screen.clear();
-      displayConnectingTo();
+      displayConnectingTo(SECRET_SSID);
     }
     attempts++;
   }
 
   wifiConnected = WiFi.status() == WL_CONNECTED;
+  displayConnected(wifiConnected);
+}
+
+void connectAdafruitIO() {
+  io.connect();
+
+  displayConnectingTo("Adafruit IO");
+
+  int attempts = 0;
+  while (io.status() < AIO_CONNECTED && attempts < 10) {
+    delay(500);
+    screen = screen.print(".").incX();
+    if (screen.getX() >= SCREEN_WIDTH) {
+      screen = screen.clear();
+      displayConnectingTo("Adafruit IO");
+    }
+    attempts++;
+  }
+
+  adafruitConnected = io.status() >= AIO_CONNECTED;
+  displayConnected(adafruitConnected);
+}
+
+void displayConnected(bool isConnected) {
   screen = screen.x(5).incY().incY();
-  if (wifiConnected) {
+  if (isConnected) {
     screen.println("Connected! :)");
   } else {
     screen.println("Failed to connect :(");
   }
-
   delay(3000);
   screen = screen.clear();
-}
-
-void connectAdafruitIO() {
-  Serial.print("Connecting to Adafruit IO");
-
-  // connect to io.adafruit.com
-  io.connect();
-
-  // wait for a connection
-  int attempts = 0;
-  while (io.status() < AIO_CONNECTED && attempts < 10) {
-    Serial.print(".");
-    delay(500);
-    attempts++;
-  }
-
-  // we are connected
-  Serial.println();
-  Serial.println(io.statusText());
 }

@@ -10,6 +10,7 @@ uint16_t getPM25() {
 }
 
 void updateAQI(uint16_t pm25) {
+  screen.clear();
   displayRect(pm25);
   displayNowText();
   displayAQI(pm25);
