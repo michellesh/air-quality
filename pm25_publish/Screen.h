@@ -1,7 +1,7 @@
 struct Screen {
-  uint8_t _textSize;
-  int16_t _x;
-  int16_t _y;
+  uint8_t _textSize = 1;
+  int16_t _x = 0;
+  int16_t _y = 0;
 
   Screen textSize(uint8_t textSize) {
     _textSize = textSize;

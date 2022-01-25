@@ -8,36 +8,27 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 
-// ESP8266 pin number -> GPIO mapping
-#define D0  16
-#define D1  5
-#define D2  4
-#define D3  0
-#define D4  2
-#define D5  14
-#define D6  12
-#define D7  13
-#define D8  15
+// AQI sensor
+SoftwareSerial pmSerial(2, 3);
+Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
 
+// Adafruit IO
+AdafruitIO_Feed *aqiFeed = io.feed("Base Camp AQI");
+
+// OLED screen
 #define SCREEN_WIDTH    128   // OLED display width, in pixels
 #define SCREEN_HEIGHT   64    // OLED display height, in pixels
 #define OLED_RESET      -1    // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS  0x3C  ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
-
-#define UPDATE_INTERVAL_SECONDS  5  // Every X seconds, read sensor and update screen
-
-SoftwareSerial pmSerial(2, 3);
-
-Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
-
-AdafruitIO_Feed *aqiFeed = io.feed("Base Camp AQI");
-
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+// For getting current time
 const long utcOffsetInSeconds = 6 * 3600; // Your time zone
 WiFiUDP ntpUDP; // Define NTP Client to get time
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 
+// other stuff
+#define UPDATE_INTERVAL_SECONDS  5  // Every X seconds, read sensor and update screen
 struct Timer {
   unsigned long totalCycleTime;
   unsigned long lastCycleTime;
@@ -49,15 +40,11 @@ struct Timer {
   };
 };
 
+bool wifiConnected = false;
 Timer timer = {1000 * UPDATE_INTERVAL_SECONDS, 0};
 
 #include "Screen.h"
-uint8_t DEFAULT_TEXT_SIZE = 1;
-int16_t DEFAULT_X = 0;
-int16_t DEFAULT_Y = 0;
-Screen screen = {DEFAULT_TEXT_SIZE, DEFAULT_X, DEFAULT_Y};
-
-bool wifiConnected = false;
+Screen screen;
 
 void setup() {
   Serial.begin(115200);
