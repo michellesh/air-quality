@@ -38,8 +38,6 @@ const long utcOffsetInSeconds = 6 * 3600; // Your time zone
 WiFiUDP ntpUDP; // Define NTP Client to get time
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 
-uint16_t last10min[120];  // 10 minutes * (60 / UPDATE_INTERVAL_SECONDS)
-
 struct Timer {
   unsigned long totalCycleTime;
   unsigned long lastCycleTime;
@@ -87,63 +85,8 @@ void loop() {
 }
 
 void displayAQI() {
-  display.clearDisplay();
-  PM25_AQI_Data data;
-
-  if (!aqi.read(&data)) {
-    Serial.println("Could not read from AQI");
-    delay(50);  // try again in a bit!
-    return;
-  }
-
-  Serial.print("PM 2.5: ");
-  Serial.println(data.pm25_standard);
-
-  aqiFeed->save(data.pm25_standard);
-
-  displayRect(display, data.pm25_standard);
-  displayNowText(display);
-  displayNowAQI(display, data.pm25_standard);
-  displayTime(display);
-  display.display();
-}
-
-void displayRect(Adafruit_SSD1306 &d, uint16_t aqi) {
-  display.drawRect(0, 15, 62, 32, SSD1306_WHITE);
-}
-
-void displayTime(Adafruit_SSD1306 &d) {
-  int hours = timeClient.getHours();
-  int minutes = timeClient.getMinutes();
-  int seconds = timeClient.getSeconds();
-  char buffer[30];
-  sprintf(buffer, "%d:%02d:%02d", hours, minutes, seconds);
-  Serial.print("Last Updated: ");
-  Serial.println(buffer);
-
-  d.setTextSize(1);
-  d.setCursor(7, 50);
-  d.println(buffer);
-}
-
-void displayNowText(Adafruit_SSD1306 &d) {
-  d.setTextSize(1);
-  d.setCursor(25, 5);
-  d.println("Now");
-}
-
-void displayNowAQI(Adafruit_SSD1306 &d, uint16_t aqi) {
-  d.setTextSize(3);
-  if (aqi < 10) {
-    d.setCursor(25, 20);
-  } else if (aqi < 100) {
-    d.setCursor(15, 20);
-  } else if (aqi < 1000) {
-    d.setCursor(5, 20);
-  } else {
-    aqi = 999;
-  }
-  char buffer[16];
-  sprintf(buffer, "%d", aqi);
-  d.println(buffer);
+  screen.clear();
+  uint16_t pm25 = getPM25();
+  aqiFeed->save(pm25);
+  updateAQI(pm25);
 }
