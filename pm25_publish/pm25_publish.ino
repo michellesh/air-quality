@@ -29,6 +29,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 
 // other stuff
 #define UPDATE_INTERVAL_SECONDS  5  // Every X seconds, read sensor and update screen
+#define NUM_AQI_VALUES  120  // 10min * (60s / UPDATE_INTERVAL_SECONDS)
 struct Timer {
   unsigned long totalCycleTime;
   unsigned long lastCycleTime;
@@ -40,9 +41,16 @@ struct Timer {
   };
 };
 
+struct aqiValue {
+  uint16_t aqi;
+  unsigned long epochTime;
+};
+
 bool wifiConnected = false;
 bool adafruitConnected = false;
-Timer timer = {1000 * UPDATE_INTERVAL_SECONDS, 0};
+Timer aqiTimer = {1000 * UPDATE_INTERVAL_SECONDS, 0};
+Timer avg10Timer = {1000 * 60 * 10, 0}; // 10 minutes
+aqiValue aqiValues[NUM_AQI_VALUES];
 
 #include "Screen.h"
 Screen screen;
@@ -67,16 +75,62 @@ void loop() {
   if (wifiConnected) {
     timeClient.update();
   }
-  if (timer.complete()) {
+  if (aqiTimer.complete()) {
     displayAQI();
-    timer.reset();
+    aqiTimer.reset();
   }
 }
 
 void displayAQI() {
-  uint16_t pm25 = getPM25();
-  updateAQI(pm25);
-  if (adafruitConnected) {
-    aqiFeed->save(pm25);
+  aqiValue pm25 = getPM25();
+  updateAQI(pm25.aqi);
+
+  uint16_t avgPM25 = getAvgPM25(pm25);
+  if (avg10Timer.complete()) {
+    //display10MinAvg();
+    Serial.print("10 min avg (complete): ");
+  } else {
+    Serial.print("10 min avg (in progress): ");
   }
+  Serial.println(avgPM25);
+  printAqiValues();
+
+  if (adafruitConnected) {
+    aqiFeed->save(pm25.aqi);
+  }
+}
+
+void printAqiValues() {
+  Serial.print("aqiValues = [");
+  for (int i = 0; i < NUM_AQI_VALUES; i++) {
+    Serial.print(aqiValues[i].aqi);
+    if (i < NUM_AQI_VALUES - 1) {
+      Serial.print(", ");
+    }
+  }
+  Serial.println("]");
+}
+
+uint16_t getAvgPM25(aqiValue pm25) {
+  //aqiValue currentValue = {pm25, timeClient.getEpochTime()};
+  aqiValue tempAqiValues[NUM_AQI_VALUES] = {pm25};
+  int sum = pm25.aqi;
+  int count = 1;
+  for (int i = 0; i < NUM_AQI_VALUES; i++) {
+    if (aqiValues[i].epochTime > 0 && !isOlderThan10min(aqiValues[i].epochTime)) {
+      tempAqiValues[count] = aqiValues[i];
+      count++;
+      sum += aqiValues[i].aqi;
+    }
+  }
+  copyArray(tempAqiValues, aqiValues, NUM_AQI_VALUES);
+  return sum / count;
+}
+
+void copyArray(aqiValue* src, aqiValue* dst, int len) {
+  memcpy(dst, src, sizeof(src[0]) * len);
+}
+
+bool isOlderThan10min(unsigned long epochTime) {
+  return (timeClient.getEpochTime() - epochTime) > (10 * 60);
 }

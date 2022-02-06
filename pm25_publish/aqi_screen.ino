@@ -1,4 +1,4 @@
-uint16_t getPM25() {
+aqiValue getPM25() {
   PM25_AQI_Data data;
 
   while (!aqi.read(&data)) {
@@ -6,7 +6,7 @@ uint16_t getPM25() {
     delay(50);  // try again in a bit!
   }
 
-  return data.pm25_standard;
+  return {data.pm25_standard, timeClient.getEpochTime()};
 }
 
 void updateAQI(uint16_t pm25) {
