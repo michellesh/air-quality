@@ -1,7 +1,7 @@
-aqiValue getPM25() {
+AQI readAqiSensor() {
   PM25_AQI_Data data;
 
-  while (!aqi.read(&data)) {
+  while (!aqiSensor.read(&data)) {
     Serial.println("Could not read from AQI");
     delay(50);  // try again in a bit!
   }
@@ -9,11 +9,11 @@ aqiValue getPM25() {
   return {data.pm25_standard, timeClient.getEpochTime()};
 }
 
-void updateAQI(uint16_t pm25) {
+void updateAQI(AQI aqi) {
   screen.clear();
-  displayRect(pm25);
+  displayRect(aqi.value);
   displayNowText();
-  displayAQI(pm25);
+  displayAQI(aqi.value);
   displayTime();
 }
 
@@ -23,12 +23,6 @@ void displayRect(uint16_t aqi) {
 
 void displayNowText() {
   screen = screen.textSize(1).x(25).y(5).println("Now");
-}
-
-char* intToChars(uint16_t i) {
-  char buffer[6];
-  sprintf(buffer, "%d", i);
-  return buffer;
 }
 
 void displayAQI(uint16_t aqi) {

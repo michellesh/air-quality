@@ -8,9 +8,12 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 
+#include "AQI.h"
+#include "Timer.h"
+
 // AQI sensor
 SoftwareSerial pmSerial(2, 3);
-Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
+Adafruit_PM25AQI aqiSensor = Adafruit_PM25AQI();
 
 // Adafruit IO
 AdafruitIO_Feed *aqiFeed = io.feed("Base Camp AQI");
@@ -22,35 +25,21 @@ AdafruitIO_Feed *aqiFeed = io.feed("Base Camp AQI");
 #define SCREEN_ADDRESS  0x3C  ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// For getting current time
+// NTP for getting current time
 const long utcOffsetInSeconds = 6 * 3600; // Your time zone
 WiFiUDP ntpUDP; // Define NTP Client to get time
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 
-// other stuff
+// other globals
 #define UPDATE_INTERVAL_SECONDS  5  // Every X seconds, read sensor and update screen
 #define NUM_AQI_VALUES  120  // 10min * (60s / UPDATE_INTERVAL_SECONDS)
-struct Timer {
-  unsigned long totalCycleTime;
-  unsigned long lastCycleTime;
-  void reset() {
-    lastCycleTime = millis();
-  };
-  bool complete() {
-    return (millis() - lastCycleTime) > totalCycleTime;
-  };
-};
 
-struct aqiValue {
-  uint16_t aqi;
-  unsigned long epochTime;
-};
 
 bool wifiConnected = false;
 bool adafruitConnected = false;
-Timer aqiTimer = {1000 * UPDATE_INTERVAL_SECONDS, 0};
-Timer avg10Timer = {1000 * 60 * 10, 0}; // 10 minutes
-aqiValue aqiValues[NUM_AQI_VALUES];
+Timer timerReadSensor = {1000 * UPDATE_INTERVAL_SECONDS, 0};
+Timer timerStartAvg = {1000 * 60 * 10, 0}; // 10 minutes
+AQI aqiValues[NUM_AQI_VALUES];
 
 #include "Screen.h"
 Screen screen;
@@ -75,35 +64,35 @@ void loop() {
   if (wifiConnected) {
     timeClient.update();
   }
-  if (aqiTimer.complete()) {
+  if (timerReadSensor.complete()) {
     displayAQI();
-    aqiTimer.reset();
+    timerReadSensor.reset();
   }
 }
 
 void displayAQI() {
-  aqiValue pm25 = getPM25();
-  updateAQI(pm25.aqi);
+  AQI aqi = readAqiSensor();
+  updateAQI(aqi);
 
-  uint16_t avgPM25 = getAvgPM25(pm25);
-  if (avg10Timer.complete()) {
+  uint16_t avg = getAvg(aqi);
+  if (timerStartAvg.complete()) {
     //display10MinAvg();
     Serial.print("10 min avg (complete): ");
   } else {
     Serial.print("10 min avg (in progress): ");
   }
-  Serial.println(avgPM25);
+  Serial.println(avg);
   printAqiValues();
 
   if (adafruitConnected) {
-    aqiFeed->save(pm25.aqi);
+    aqiFeed->save(aqi.value);
   }
 }
 
 void printAqiValues() {
   Serial.print("aqiValues = [");
   for (int i = 0; i < NUM_AQI_VALUES; i++) {
-    Serial.print(aqiValues[i].aqi);
+    Serial.print(aqiValues[i].value);
     if (i < NUM_AQI_VALUES - 1) {
       Serial.print(", ");
     }
@@ -111,26 +100,17 @@ void printAqiValues() {
   Serial.println("]");
 }
 
-uint16_t getAvgPM25(aqiValue pm25) {
-  //aqiValue currentValue = {pm25, timeClient.getEpochTime()};
-  aqiValue tempAqiValues[NUM_AQI_VALUES] = {pm25};
-  int sum = pm25.aqi;
+uint16_t getAvg(AQI aqi) {
+  AQI tempAqiValues[NUM_AQI_VALUES] = {aqi};
+  int sum = aqi.value;
   int count = 1;
   for (int i = 0; i < NUM_AQI_VALUES; i++) {
     if (aqiValues[i].epochTime > 0 && !isOlderThan10min(aqiValues[i].epochTime)) {
       tempAqiValues[count] = aqiValues[i];
       count++;
-      sum += aqiValues[i].aqi;
+      sum += aqiValues[i].value;
     }
   }
   copyArray(tempAqiValues, aqiValues, NUM_AQI_VALUES);
   return sum / count;
-}
-
-void copyArray(aqiValue* src, aqiValue* dst, int len) {
-  memcpy(dst, src, sizeof(src[0]) * len);
-}
-
-bool isOlderThan10min(unsigned long epochTime) {
-  return (timeClient.getEpochTime() - epochTime) > (10 * 60);
 }
