@@ -1,20 +1,16 @@
-AQI readAqiSensor() {
-  PM25_AQI_Data data;
-
-  while (!aqiSensor.read(&data)) {
-    Serial.println("Could not read from AQI");
-    delay(50);  // try again in a bit!
-  }
-
-  return {data.pm25_standard, timeClient.getEpochTime()};
-}
-
-void updateAQI(AQI aqi) {
+void displayNowAqi(AQI aqi) {
   screen.clear();
   displayRect(aqi.value);
   displayNowText();
   displayAQI(aqi.value);
   displayTime();
+}
+
+void displayAvgAqi(uint16_t avg) {
+  screen = screen.textSize(1).x(70).y(5).println("10m avg");
+  display.drawLine(70, 15, 110, 15, SSD1306_WHITE);
+  char* chars = timerStartAvg.complete() ? intToChars(avg) : (char*)"--";
+  screen = screen.textSize(2).x(70).y(23).println(chars);
 }
 
 void displayRect(uint16_t aqi) {

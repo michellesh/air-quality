@@ -65,39 +65,27 @@ void loop() {
     timeClient.update();
   }
   if (timerReadSensor.complete()) {
-    displayAQI();
     timerReadSensor.reset();
-  }
-}
 
-void displayAQI() {
-  AQI aqi = readAqiSensor();
-  updateAQI(aqi);
+    AQI aqi = readAqiSensor();
+    displayNowAqi(aqi);
+    displayAvgAqi(getAvg(aqi));
 
-  uint16_t avg = getAvg(aqi);
-  if (timerStartAvg.complete()) {
-    //display10MinAvg();
-    Serial.print("10 min avg (complete): ");
-  } else {
-    Serial.print("10 min avg (in progress): ");
-  }
-  Serial.println(avg);
-  printAqiValues();
-
-  if (adafruitConnected) {
-    aqiFeed->save(aqi.value);
-  }
-}
-
-void printAqiValues() {
-  Serial.print("aqiValues = [");
-  for (int i = 0; i < NUM_AQI_VALUES; i++) {
-    Serial.print(aqiValues[i].value);
-    if (i < NUM_AQI_VALUES - 1) {
-      Serial.print(", ");
+    if (adafruitConnected) {
+      aqiFeed->save(aqi.value);
     }
   }
-  Serial.println("]");
+}
+
+AQI readAqiSensor() {
+  PM25_AQI_Data data;
+
+  while (!aqiSensor.read(&data)) {
+    Serial.println("Could not read from AQI");
+    delay(50);  // try again in a bit!
+  }
+
+  return {data.pm25_standard, timeClient.getEpochTime()};
 }
 
 uint16_t getAvg(AQI aqi) {
