@@ -32,6 +32,7 @@ AQI aqiValues[NUM_AQI_VALUES];
 
 #include "Screen.h"
 Screen screen;
+AQI aqi;
 
 void setup() {
   Serial.begin(115200);
@@ -45,24 +46,20 @@ void loop() {
   if (timerReadSensor.complete()) {
     timerReadSensor.reset();
 
-    AQI aqi = readAqiSensor();
-    displayNowAqi(aqi);
-    displayAvgAqi(getAvg(aqi));
+    readAqiSensor();
+    displayNowAqi();
+    displayAvgAqi();
   }
 }
 
-AQI readAqiSensor() {
+void readAqiSensor() {
   PM25_AQI_Data data;
-
-  while (!aqiSensor.read(&data)) {
-    Serial.println("Could not read from AQI");
-    delay(50);  // try again in a bit!
+  if (aqiSensor.read(&data)) {
+    aqi = {data.pm25_standard, millis()};
   }
-
-  return {data.pm25_standard, millis()};
 }
 
-uint16_t getAvg(AQI aqi) {
+uint16_t getAvg() {
   AQI tempAqiValues[NUM_AQI_VALUES] = {aqi};
   int sum = aqi.value;
   int count = 1;

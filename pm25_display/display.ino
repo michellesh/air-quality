@@ -1,17 +1,17 @@
-void displayNowAqi(AQI aqi) {
+void displayNowAqi() {
   screen.clear();
   displayRect();
-  displayWhenText(aqi.atMillis);
-  displayAQI(aqi.value);
+  displayWhenText();
+  displayAQI();
 }
 
-void displayAvgAqi(uint16_t avg) {
+void displayAvgAqi() {
   screen.textSize(1).x(70).y(5).println("10m avg");
   display.drawLine(70, 15, 110, 15, SSD1306_WHITE);
   screen = screen.textSize(2).x(70).y(23);
 
   if (timerStartAvg.complete()) {
-    screen.println(avg);
+    screen.println(getAvg());
   } else {
     screen.println("--");
   }
@@ -21,8 +21,8 @@ void displayRect() {
   display.drawRect(0, 15, 62, 32, SSD1306_WHITE);
 }
 
-void displayWhenText(unsigned long atMillis) {
-  unsigned long timeSinceLastData = millis() - atMillis;
+void displayWhenText() {
+  unsigned long timeSinceLastData = millis() - aqi.atMillis;
 
   if (timeSinceLastData < seconds(10)) {
     screen.textSize(1).x(25).y(5).println("Now");
@@ -42,12 +42,12 @@ void displayWhenText(unsigned long atMillis) {
   screen.textSize(1).x(12).y(5).println(buffer);
 }
 
-void displayAQI(uint16_t aqiValue) {
-  if (aqiValue >= 1000) {
-    aqiValue = 999;
+void displayAQI() {
+  if (aqi.value >= 1000) {
+    aqi.value = 999;
   }
   screen.textSize(3)
-        .x(aqiValue < 10 ? 25 : aqiValue < 100 ? 15 : 5)
+        .x(aqi.value < 10 ? 25 : aqi.value < 100 ? 15 : 5)
         .y(20)
-        .println(aqiValue);
+        .println(aqi.value);
 }
