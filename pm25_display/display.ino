@@ -3,6 +3,7 @@ void displayNowAqi() {
   displayRect();
   displayWhenText();
   displayAQI();
+  displayNiceMessage();
 }
 
 void displayAvgAqi() {
@@ -43,11 +44,13 @@ void displayWhenText() {
 }
 
 void displayAQI() {
-  if (aqi.value >= 1000) {
-    aqi.value = 999;
-  }
+  uint16_t aqiValue = aqi.value >= 1000 ? 999 : aqi.value;
   screen.textSize(3)
-        .x(aqi.value < 10 ? 25 : aqi.value < 100 ? 15 : 5)
+        .x(aqiValue < 10 ? 25 : aqiValue < 100 ? 15 : 5)
         .y(20)
-        .println(aqi.value);
+        .println(aqiValue);
+}
+
+void displayNiceMessage() {
+  screen.textSize(1).x(4).y(50).println("Have a lovely day :)");
 }
