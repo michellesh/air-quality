@@ -7,9 +7,9 @@ void displayNowAqi() {
 }
 
 void displayAvgAqi() {
-  screen.textSize(1).x(70).y(5).println("10m avg");
-  display.drawLine(70, 15, 110, 15, SSD1306_WHITE);
-  screen = screen.textSize(2).x(70).y(23);
+  screen.textSize(1).x(70).y(8).println("10m avg");
+  display.drawLine(70, 16, 110, 16, SSD1306_WHITE);
+  screen = screen.textSize(2).x(70).y(24);
 
   if (timerStartAvg.complete()) {
     screen.println(getAvg());
@@ -19,14 +19,14 @@ void displayAvgAqi() {
 }
 
 void displayRect() {
-  display.drawRect(0, 15, 62, 32, SSD1306_WHITE);
+  display.drawRect(0, 16, 62, 33, SSD1306_WHITE);
 }
 
 void displayWhenText() {
   unsigned long timeSinceLastData = millis() - aqi.atMillis;
 
   if (timeSinceLastData < seconds(10)) {
-    screen.textSize(1).x(25).y(5).println("Now");
+    screen.textSize(1).x(25).y(8).println("Now");
     return;
   }
 
@@ -40,17 +40,17 @@ void displayWhenText() {
   } else {
     sprintf(buffer, "%dd ago", msToDays(timeSinceLastData));
   }
-  screen.textSize(1).x(12).y(5).println(buffer);
+  screen.textSize(1).x(12).y(8).println(buffer);
 }
 
 void displayAQI() {
   uint16_t aqiValue = aqi.value >= 1000 ? 999 : aqi.value;
   screen.textSize(3)
         .x(aqiValue < 10 ? 25 : aqiValue < 100 ? 15 : 5)
-        .y(20)
+        .y(21)
         .println(aqiValue);
 }
 
 void displayNiceMessage() {
-  screen.textSize(1).x(4).y(50).println("Have a lovely day :)");
+  screen.textSize(1).x(4).y(51).println("Have a lovely day :)");
 }
