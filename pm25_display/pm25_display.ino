@@ -53,9 +53,19 @@ void loop() {
 }
 
 void readAqiSensor() {
+  // Clear the serial buffer.
+  while (pmSerial.available()) {
+    pmSerial.read();
+  }
+
+  // Wait for a reading.
+  unsigned long start_ms = millis();
   PM25_AQI_Data data;
-  if (aqiSensor.read(&data)) {
-    aqi = {data.pm25_standard, millis()};
+  while (millis() - start_ms < seconds(2)) {
+    if (aqiSensor.read(&data)) {
+      aqi = {data.pm25_standard, millis()};
+      break;
+    }
   }
 }
 
