@@ -28,7 +28,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Timer timerReadSensor = {1000 * UPDATE_INTERVAL_SECONDS, 0};
 Timer timerStartAvg = {1000 * 60 * 10, 0}; // 10 minutes
 
-AQI aqiValues[NUM_AQI_VALUES];
+AqiBuffer aqiValues(NUM_AQI_VALUES);
 
 #include "Screen.h"
 Screen screen;
@@ -47,6 +47,8 @@ void loop() {
     timerReadSensor.reset();
 
     readAqiSensor();
+    aqiValues.insert(aqi);
+
     displayNowAqi();
     displayAvgAqi();
   }
@@ -67,19 +69,4 @@ void readAqiSensor() {
       break;
     }
   }
-}
-
-uint16_t getAvg() {
-  AQI tempAqiValues[NUM_AQI_VALUES] = {aqi};
-  int sum = aqi.value;
-  int count = 1;
-  for (int i = 0; i < NUM_AQI_VALUES; i++) {
-    if (aqiValues[i].atMillis > 0 && aqiValues[i].atMillis < minutes(10)) {
-      tempAqiValues[count] = aqiValues[i];
-      count++;
-      sum += aqiValues[i].value;
-    }
-  }
-  copyArray(tempAqiValues, aqiValues, NUM_AQI_VALUES);
-  return sum / count;
 }
